@@ -1,6 +1,6 @@
-# FamTask Docker - Container-Setup & Proxmox Installer
+# FamTask Docker - Container-Setup
 
-Docker Compose Konfiguration für FamTask (Web, MariaDB, phpMyAdmin) sowie automatische Installationsscripts für Proxmox VE.
+Docker Compose Konfiguration für FamTask (Web, MariaDB, phpMyAdmin).
 
 ## Inhalte
 
@@ -8,34 +8,34 @@ Docker Compose Konfiguration für FamTask (Web, MariaDB, phpMyAdmin) sowie autom
 - `php/Dockerfile` – PHP 8.2 Apache Image mit Extensions (pdo_mysql, zip, gd, curl, mbstring, intl)
 - `php/php.ini` – PHP-Konfiguration (Upload-Limits, Timezone, OPcache)
 - `db/init.sql` – Datenbank-Initialisierung
-- `scripts/setup.sh` / `setup.ps1` – Automatische Konfiguration nach Container-Start
-- `proxmox-install.sh` – Vollständiges Installationsscript für Proxmox
-- `proxmox-install-oneliner.sh` – One-Liner für `curl | bash`
+- `scripts/setup.sh` / `setup.ps1` – Automatische Konfiguration nach Container-Start (klont famtask Repo, erstellt Config)
 
-## Schnellstart (Proxmox / Debian / Ubuntu)
+## Installation auf Proxmox / Debian / Ubuntu
 
-### One-Liner (empfohlen)
+**Für Proxmox Nutzung das separate Repo: [famtask_proxmox](https://github.com/nanoemilios/famtask_proxmox)**
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/nanoemilios/famtask_docker/main/proxmox-install-oneliner.sh)
+# One-Liner (empfohlen):
+bash <(curl -fsSL https://raw.githubusercontent.com/nanoemilios/famtask_proxmox/main/proxmox-install-oneliner.sh)
+
+# Oder manuell:
+git clone https://github.com/nanoemilios/famtask_proxmox.git
+cd famtask_proxmox
+bash proxmox-install.sh
 ```
 
-### Manuell
+Der Installer klont dieses Repo (famtask_docker) automatisch nach `/opt/famtask_docker` und führt das Setup aus.
+
+## Manuelle Docker-Nutzung (ohne Proxmox Installer)
 
 ```bash
 git clone https://github.com/nanoemilios/famtask_docker.git
 cd famtask_docker
-bash proxmox-install.sh
+cp docker/.env.example docker/.env
+# .env anpassen (Passwörter!)
+docker compose up -d --build
+bash scripts/setup.sh  # klont famtask Repo, erstellt .famtask_cfg.php
 ```
-
-## Was der Installer tut
-
-1. **Docker & Docker Compose** installiert (falls nicht vorhanden)
-2. **Repository** klont nach `/opt/famtask_docker`
-3. **Sichere Passwörter** generiert (24 Zeichen)
-4. **`.env` Datei** erstellt mit allen Zugangsdaten
-5. **Container baut & startet** (Web, MariaDB, phpMyAdmin)
-6. **Wartet auf DB** und erstellt App-Konfiguration (`.famtask_cfg.php`)
 
 ## Nach der Installation
 
@@ -47,20 +47,11 @@ bash proxmox-install.sh
 
 **Wichtige Dateien:**
 - `docker/.env` – Docker-Umgebungsvariablen (Passwörter!)
-- `my/.famtask_cfg.php` – App-DB-Konfiguration (wird von Installer erstellt)
-
-## Manuelle Docker-Nutzung
-
-```bash
-cd famtask_docker
-# .env anpassen (oder .env.example kopieren)
-docker compose up -d --build
-# Dann: bash scripts/setup.sh  (erstellt .famtask_cfg.php)
-```
+- `my/.famtask_cfg.php` – App-DB-Konfiguration (wird von setup.sh erstellt)
 
 ## Ports anpassen
 
-In `.env`:
+In `docker/.env`:
 ```env
 APP_PORT=8888      # Web-App
 PMA_PORT=8081      # phpMyAdmin
@@ -74,7 +65,8 @@ In `docker-compose.yml` die Ports entsprechend anpassen.
 ```bash
 cd /opt/famtask_docker
 git pull
-docker compose -f docker-compose.yml up -d --build
+docker compose -f docker/docker-compose.yml up -d --build
+bash scripts/setup.sh
 ```
 
 ## Deinstallation
@@ -91,7 +83,7 @@ Für bessere Performance in unprivilegiertem LXC:
 
 1. CT erstellen: Debian 12, 2 GB RAM, 2 CPU, 10 GB Disk
 2. Features aktivieren: `Nesting=1`, `Keyctl=1`
-3. In CT: One-Liner ausführen
+3. In CT: Proxmox Installer ausführen (siehe famtask_proxmox)
 
 ```bash
 # Auf Proxmox-Host:
@@ -130,6 +122,7 @@ bash scripts/setup.sh
 
 - **famtask** – Hauptanwendung (wird als Volume in `php-apache` gemountet)
 - **famtask_installer** – Web-Installer für Shared Hosting
+- **famtask_proxmox** – Proxmox Installer Scripts
 
 ## Lizenz
 
