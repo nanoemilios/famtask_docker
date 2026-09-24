@@ -1,0 +1,73 @@
+services:
+
+  php-apache:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: famtask-web
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    volumes:
+      - ./my:/var/www/html
+      - ./php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    environment:
+      - DB_HOST=mariadb
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-famtask}
+      - DB_USER=${DB_USER:-famtask}
+      - DB_PASS=${DB_PASS:-famtask123}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - famnet
+
+  mariadb:
+    image: mariadb:10.11
+    container_name: famtask-db
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:-root123}
+      MYSQL_DATABASE:      ${DB_NAME:-famtask}
+      MYSQL_USER:          ${DB_USER:-famtask}
+      MYSQL_PASSWORD:      ${DB_PASS:-famtask123}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - famnet
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: famtask-pma
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USER:-famtask}
+      PMA_PASSWORD: ${DB_PASS:-famtask123}
+      UPLOAD_LIMIT: 50M
+    depends_on:
+      - mariadb
+    networks:
+      - famnet
+
+volumes:
+  db_data:
+    name: famtask_db_data
+
+networks:
+  famnet:
+    name: famtask_net
+    driver: bridge

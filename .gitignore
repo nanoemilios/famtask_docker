@@ -1,0 +1,23 @@
+# FamTask Docker - .gitignore
+
+# Environment mit Passwörtern
+docker/.env
+
+# App-Konfiguration (wird von Installer erstellt)
+my/.famtask_cfg.php
+
+# Docker Volumes
+db_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
