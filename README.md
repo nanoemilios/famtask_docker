@@ -30,7 +30,7 @@ Nach einem Update des Images:
 ```bash
 cd /opt/famtask_docker
 git pull
-docker compose up -d --build      # baut das Image neu, damit curl/ftp wirksam werden
+docker compose --env-file docker/.env up -d --build      # baut das Image neu, damit curl/ftp wirksam werden
 bash scripts/setup.sh
 ```
 
@@ -67,7 +67,7 @@ einkommentieren und den Host-Pfad anpassen:
 **3. Neu starten:**
 
 ```bash
-docker compose up -d
+docker compose --env-file docker/.env up -d
 ```
 
 **4. In FamTask anlegen:** Admin → Musikquellen → Art **„Gemountetes Laufwerk"**,
@@ -103,7 +103,7 @@ git clone https://github.com/nanoemilios/famtask_docker.git
 cd famtask_docker
 cp docker/.env.example docker/.env
 # .env anpassen (Passwörter!)
-docker compose up -d --build
+docker compose --env-file docker/.env up -d --build
 bash scripts/setup.sh  # klont famtask Repo, erstellt .famtask_cfg.php
 ```
 
@@ -128,14 +128,30 @@ PMA_PORT=8081      # phpMyAdmin
 DB_PORT=3307       # MariaDB (Host-Port)
 ```
 
-In `docker-compose.yml` die Ports entsprechend anpassen.
+Diese Variablen werden von `docker-compose.yml` ausgewertet
+(`"${APP_PORT:-8888}:80"` usw.). Nach der Änderung:
+`docker compose --env-file docker/.env up -d`.
+
+## ⚠️ Warum `--env-file` nötig ist
+
+Compose sucht `.env` standardmässig im **Arbeitsverzeichnis**, also in
+`/opt/famtask_docker/.env`. Die Passwörter liegen aber bewusst unter
+`docker/.env`, weil `scripts/setup.sh` sie von dort liest.
+
+Ohne `--env-file docker/.env` startet Compose zwar, verwendet aber die
+Fallback-Werte aus `docker-compose.yml` (`famtask123` / `root123`) – die in
+`docker/.env` hinterlegten Passwörter werden **stillschweigend ignoriert**,
+und die App verbindet sich mit falschen Zugangsdaten.
+
+Deshalb steht `--env-file docker/.env` in allen Befehlen dieses READMEs, in
+`famtask_proxmox` und in `scripts/setup.sh` wird dieselbe Datei gelesen.
 
 ## Updates
 
 ```bash
 cd /opt/famtask_docker
 git pull
-docker compose up -d --build      # Compose-Datei liegt im Repository-Stamm
+docker compose --env-file docker/.env up -d --build      # Compose-Datei liegt im Repository-Stamm
 bash scripts/setup.sh
 ```
 
@@ -143,7 +159,7 @@ bash scripts/setup.sh
 
 ```bash
 cd /opt/famtask_docker
-docker compose down -v
+docker compose --env-file docker/.env down -v
 rm -rf /opt/famtask_docker
 ```
 
@@ -182,7 +198,7 @@ pve-firewall add rule --port 3307 --proto tcp --action accept
 
 **Logs anzeigen:**
 ```bash
-docker compose logs -f
+docker compose --env-file docker/.env logs -f
 ```
 
 **Passwörter anzeigen:**
@@ -192,8 +208,8 @@ cat docker/.env
 
 **Datenbank zurücksetzen (Datenverlust!):**
 ```bash
-docker compose down -v
-docker compose up -d
+docker compose --env-file docker/.env down -v
+docker compose --env-file docker/.env up -d
 bash scripts/setup.sh
 ```
 
