@@ -5,10 +5,80 @@ Docker Compose Konfiguration für FamTask (Web, MariaDB, phpMyAdmin).
 ## Inhalte
 
 - `docker-compose.yml` – 3 Services: php-apache (Port 8888), mariadb (Port 3307), phpmyadmin (Port 8081)
-- `php/Dockerfile` – PHP 8.2 Apache Image mit Extensions (pdo_mysql, zip, gd, curl, mbstring, intl)
+- `php/Dockerfile` – PHP 8.2 Apache Image mit Extensions (pdo_mysql, zip, gd, curl, **ftp**, mbstring, intl)
 - `php/php.ini` – PHP-Konfiguration (Upload-Limits, Timezone, OPcache)
 - `db/init.sql` – Datenbank-Initialisierung
 - `scripts/setup.sh` / `setup.ps1` – Automatische Konfiguration nach Container-Start (klont famtask Repo, erstellt Config)
+
+### PHP-Extensions
+
+| Extension | Wofür |
+|---|---|
+| `pdo_mysql` | Datenbank-Sync |
+| `gd` | Cover-Bilder, Icons |
+| `zip` | Backup/Restore |
+| `mbstring` | UTF-8 in allen Sprachdateien |
+| `intl` | Datumsformate |
+| `curl` | **WebDAV** (PROPFIND) und **HTTPS/S3**-Downloads in `remote.php` |
+| `ftp` | **FTP/FTPS**-Stream-Wrapper in `remote.php` |
+
+`curl` und `ftp` sind seit v1.5.0 enthalten. Ohne sie funktionieren externe
+Musikquellen nicht – WebDAV und HTTPS brauchen `curl`, FTP braucht `ftp`.
+
+Nach einem Update des Images:
+
+```bash
+cd /opt/famtask_docker
+git pull
+docker compose up -d --build      # baut das Image neu, damit curl/ftp wirksam werden
+bash scripts/setup.sh
+```
+
+## Musik von einem NAS (SMB/CIFS, NFS)
+
+**PHP kann Netzwerkdateisysteme nicht selbst mounten.** Der Host mountet,
+Docker reicht den Pfad nur durch. Deshalb ist in `docker-compose.yml` eine
+Zeile vorbereitet, die du nach dem Mounten aktivierst.
+
+**1. Auf dem Host mounten** (auf dem Rechner mit Docker, nicht im Container):
+
+```bash
+# SMB/CIFS
+sudo apt-get install -y cifs-utils
+sudo mkdir -p /srv/famtask-music
+sudo mount -t cifs //192.168.1.20/musik /srv/famtask-music \
+     -o username=NASUSER,password=GEHEIM,uid=0,gid=0,ro
+
+# NFS
+sudo mkdir -p /mnt/nas/music
+sudo mount -t nfs 192.168.1.30:/export/music /mnt/nas/music
+
+# Prüfen – muss Dateien zeigen
+ls /srv/famtask-music
+```
+
+**2. Bind-Mount aktivieren.** In `docker-compose.yml` die Zeile unter `volumes:`
+einkommentieren und den Host-Pfad anpassen:
+
+```yaml
+- /srv/famtask-music:/mnt/music:ro
+```
+
+**3. Neu starten:**
+
+```bash
+docker compose up -d
+```
+
+**4. In FamTask anlegen:** Admin → Musikquellen → Art **„Gemountetes Laufwerk"**,
+Adresse `/mnt/music`, Übernahme **Verlinken**.
+
+Erlaubte Stammpfade stehen in `FAMTASK_REMOTE_ROOTS` (Standard
+`/mnt,/media,/srv,/net,/Volumes`). Alles ausserhalb wird mit HTTP 403 abgewiesen,
+damit niemand versehentlich `/etc` in die Jukebox hängen kann.
+
+> WebDAV, FTP und HTTPS brauchen **keinen** Mount – dafür reicht die Adresse in
+> FamTask allein.
 
 ## Installation auf Proxmox / Debian / Ubuntu
 
@@ -65,7 +135,7 @@ In `docker-compose.yml` die Ports entsprechend anpassen.
 ```bash
 cd /opt/famtask_docker
 git pull
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose up -d --build      # Compose-Datei liegt im Repository-Stamm
 bash scripts/setup.sh
 ```
 
@@ -76,6 +146,15 @@ cd /opt/famtask_docker
 docker compose down -v
 rm -rf /opt/famtask_docker
 ```
+
+> ⚠️ **Bekannter Widerspruch:** Die Skripte in
+> [famtask_proxmox](https://github.com/nanoemilios/famtask_proxmox) rufen weiterhin
+> `docker/docker-compose.yml` auf. Diese Datei existiert nicht – die Compose-Datei
+> liegt im Repository-Stamm. Ausserdem liest `scripts/setup.sh` die `.env` aus
+> `docker/.env`, waehrend Compose standardmaessig `.env` aus dem Arbeitsverzeichnis
+> erwartet. Details in
+> [famtask_docs/WORKSPACE_COMPARISON.md](https://github.com/nanoemilios/famtask_docs/blob/main/WORKSPACE_COMPARISON.md).
+> Die Befehle oben in diesem README sind die korrekte Form.
 
 ## LXC Container (Proxmox)
 
@@ -123,6 +202,17 @@ bash scripts/setup.sh
 - **famtask** – Hauptanwendung (wird als Volume in `php-apache` gemountet)
 - **famtask_installer** – Web-Installer für Shared Hosting
 - **famtask_proxmox** – Proxmox Installer Scripts
+- **famtask_docs** – ausführliche Dokumentation
+
+## Sicherheit
+
+> ⚠️ FamTask hat keine echte Benutzerverwaltung – der Familiencode ist keine
+> Authentifizierung. **Nicht ungeschützt ins Internet stellen.** Empfehlung:
+> nur im Heimnetz betreiben oder einen Reverse-Proxy mit Basic-Auth davorsetzen.
+
+Die Ports 8888 (App), 8081 (phpMyAdmin) und 3307 (Datenbank) gehören **nicht**
+ins Internet. 3307 sollte nach dem Setup gar nicht mehr von aussen erreichbar
+sein – bei Bedarf in `docker-compose.yml` die Port-Zuweisung entfernen.
 
 ## Lizenz
 

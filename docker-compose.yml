@@ -11,12 +11,30 @@ services:
     volumes:
       - ./my:/var/www/html
       - ./php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      # ── Musik von einem NAS / Netzwerklaufwerk (optional) ──────────────
+      # PHP kann weder SMB/CIFS noch NFS selbst mounten. Der Host mountet,
+      # Docker reicht den Pfad nur durch. Die Beispiele sind auskommentiert –
+      # Pfad auf der HOST-Maschine anpassen und die Zeile aktivieren:
+      #
+      #   SMB/CIFS  (Linux-Host):
+      #   - /srv/famtask-music:/mnt/music:ro
+      #
+      #   SMB/CIFS  (macOS/Windows):
+      #   - /Volumes/NAS/Musik:/mnt/music:ro
+      #
+      #   NFS:
+      #   - /mnt/nas/musik:/mnt/music:ro
+      #
+      # Danach in FamTask unter Admin → Musikquellen eine Quelle vom Typ
+      # "Gemountetes Laufwerk" mit Pfad /mnt/music anlegen.
     environment:
       - DB_HOST=mariadb
       - DB_PORT=3306
       - DB_NAME=${DB_NAME:-famtask}
       - DB_USER=${DB_USER:-famtask}
       - DB_PASS=${DB_PASS:-famtask123}
+      # Stammverzeichnisse, aus denen "Gemountetes Laufwerk" lesen darf:
+      - FAMTASK_REMOTE_ROOTS=/mnt,/media,/srv,/net,/Volumes
     depends_on:
       mariadb:
         condition: service_healthy
