@@ -37,7 +37,9 @@ RUN a2enmod rewrite
 
 # Debian-Apache liefert ein eigenes Alias /icons/ -> /usr/share/apache2/icons.
 # Es verdeckt das App-Verzeichnis icons/ (favicon.svg & Co. liefern sonst 404).
-RUN a2dismod alias
+# Nur diese eine Zeile entfernen – mod_alias bleibt für andere Direktiven aktiv
+# (a2dismod verweigert das Modul als "essential").
+RUN sed -i '/Alias \/icons\//d' /etc/apache2/mods-available/alias.conf
 
 RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
 
