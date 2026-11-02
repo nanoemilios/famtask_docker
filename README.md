@@ -8,7 +8,7 @@ Docker Compose Konfiguration für FamTask (Web, MariaDB, phpMyAdmin).
 - `php/Dockerfile` – PHP 8.2 Apache Image mit Extensions (pdo_mysql, zip, gd, curl, **ftp**, mbstring, intl)
 - `php/php.ini` – PHP-Konfiguration (Upload-Limits, Timezone, OPcache)
 - `db/init.sql` – Datenbank-Initialisierung
-- `scripts/setup.sh` / `setup.ps1` – Automatische Konfiguration nach Container-Start (klont famtask Repo, erstellt Config)
+- `scripts/setup.sh` / `setup.ps1` – Automatische Konfiguration nach Container-Start (klont famtask Repo, legt Datenbankschema und Config über den App-Installer an)
 
 ### PHP-Extensions
 
@@ -104,7 +104,7 @@ cd famtask_docker
 cp docker/.env.example docker/.env
 # .env anpassen (Passwörter!)
 docker compose --env-file docker/.env up -d --build
-bash scripts/setup.sh  # klont famtask Repo, erstellt .famtask_cfg.php
+bash scripts/setup.sh  # klont famtask Repo, legt Tabellen und .famtask_cfg.php an
 ```
 
 ## Nach der Installation

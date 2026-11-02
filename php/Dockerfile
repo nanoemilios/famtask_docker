@@ -35,6 +35,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN a2enmod rewrite
 
+# Debian-Apache liefert ein eigenes Alias /icons/ -> /usr/share/apache2/icons.
+# Es verdeckt das App-Verzeichnis icons/ (favicon.svg & Co. liefern sonst 404).
+RUN a2dismod alias
+
 RUN sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
 
 WORKDIR /var/www/html
