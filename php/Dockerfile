@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
         libcurl4-openssl-dev \
         libssl-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-configure curl --with-openssl \
     && docker-php-ext-install -j$(nproc) \
         pdo \
         pdo_mysql \
@@ -23,6 +22,10 @@ RUN apt-get update && apt-get install -y \
         ftp \
     && a2enmod headers \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# curl baut gegen libcurl (libcurl4-openssl-dev) und bringt HTTPS mit.
+# Ein "docker-php-ext-configure curl --with-openssl" gibt es nicht – die
+# Option gehört zur openssl-Extension und bricht den Build ab.
 
 # Externe Musikquellen (my/remote.php)
 #   ftp    → Stream-Wrapper ftp:// ftps:// webdav:// webdavs://
